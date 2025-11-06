@@ -9,20 +9,24 @@ import SwiftUI
 
 enum GameMove: CaseIterable {
 	case rock, paper, scissors
+
+	var emoji: String {
+		switch self {
+		case .rock: return "🪨"
+		case .paper: return "📜"
+		case .scissors: return "✂️"
+		}
+	}
 }
 
-enum UserGoal: CaseIterable {
-	case Win, Lose
-}
+enum UserGoal: CaseIterable, CustomStringConvertible {
+	case win, lose
 
-func getGameMoveEmoji(gameMove: GameMove) -> String {
-	switch gameMove {
-	case .rock:
-		return "🪨"
-	case .paper:
-		return "📜"
-	case .scissors:
-		return "✂️"
+	var description: String {
+		switch self {
+		case .win: return "Win"
+		case .lose: return "Lose"
+		}
 	}
 }
 
@@ -38,25 +42,18 @@ struct GameMoveButton: ButtonStyle {
 
 struct ContentView: View {
 	@State private var currentMove: GameMove = GameMove.allCases.randomElement()!
-	@State private var currentRound = 1 {
-		willSet {
-			if (newValue == 11) {
-				currentRound = 10
-				isEndGameAlertVisible = true
-			}
-		}
-	}
+	@State private var currentRound = 1
 	@State private var goal: UserGoal = UserGoal.allCases.randomElement()!
 	@State private var score = 0
 	@State private var isEndGameAlertVisible = false
 
 	func advanceRound(userGameMove: GameMove) {
 		let isUserCorrect = checkAnswer(answer: userGameMove)
+		score += isUserCorrect ? 1 : -1
 
-		if isUserCorrect {
-			score += 1
-		} else {
-			score -= 1
+		if currentRound == 10 {
+			isEndGameAlertVisible = true
+			return
 		}
 
 		currentMove = GameMove.allCases.randomElement()!
@@ -66,14 +63,13 @@ struct ContentView: View {
 	}
 
 	func checkAnswer(answer userGameMove: GameMove) -> Bool {
-		switch currentMove {
-		case .rock:
-			return goal == .Win ? userGameMove == .paper : userGameMove == .scissors
-		case .paper:
-			return goal == .Win ? userGameMove == .scissors : userGameMove == .rock
-		case .scissors:
-			return goal == .Win ? userGameMove == .rock : userGameMove == .paper
-		
+		switch (currentMove, goal) {
+		case (.rock, .win): return userGameMove == .paper
+		case (.rock, .lose): return userGameMove == .scissors
+		case (.paper, .win): return userGameMove == .scissors
+		case (.paper, .lose): return userGameMove == .rock
+		case (.scissors, .win): return userGameMove == .rock
+		case (.scissors, .lose): return userGameMove == .paper
 		}
 	}
 
@@ -82,24 +78,18 @@ struct ContentView: View {
 			VStack {
 				Spacer()
 				Spacer()
-				Text(getGameMoveEmoji(gameMove: currentMove))
+				Text(currentMove.emoji)
 					.font(.system(size: 64))
 				Spacer()
 				Divider().padding()
 				Spacer()
 				HStack(spacing: 24) {
-					Button(getGameMoveEmoji(gameMove: .rock)) {
-						advanceRound(userGameMove: .rock)
+					ForEach(GameMove.allCases, id: \.self) { move in
+						Button(move.emoji) {
+							advanceRound(userGameMove: move)
+						}
+						.buttonStyle(GameMoveButton())
 					}
-					.buttonStyle(GameMoveButton())
-					Button(getGameMoveEmoji(gameMove: .paper)) {
-						advanceRound(userGameMove: .paper)
-					}
-					.buttonStyle(GameMoveButton())
-					Button(getGameMoveEmoji(gameMove: .scissors)) {
-						advanceRound(userGameMove: .scissors)
-					}
-					.buttonStyle(GameMoveButton())
 				}
 				Spacer()
 				Spacer()
